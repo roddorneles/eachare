@@ -105,12 +105,6 @@ public class App {
                     break;
             }
 
-            if (userInput.equals("conecte")) {
-                // Socket client = new Socket("127.0.0.1", 5003);
-                // PrintStream output = new PrintStream(client.getOutputStream());
-                // output.println("Bem vindo ao streaming!");
-            }
-
         } while (!userInput.isEmpty());
 
     }
@@ -133,7 +127,6 @@ public class App {
         String userInput = sc.nextLine();
 
         if (!userInput.equals("0")) {
-            System.out.println("ue");
             NeighborPeer selectedPeer = neighbors.get(Integer.parseInt(userInput) - 1);
             localPeer.sendHello(selectedPeer);
         }

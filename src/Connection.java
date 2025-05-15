@@ -17,7 +17,9 @@ public class Connection {
         this.receiver = receiver;
     }
 
-    public void send() {
+    public Message send() {
+
+        Message response = null;
 
         try {
             // cria a conexão com o destinatário
@@ -36,7 +38,7 @@ public class Connection {
             try {
                 // aguarda a resposta do destinatário para confirmar que ele recebeu de fato a
                 // mensagem
-                Message response = (Message) ois.readObject();
+                response = (Message) ois.readObject();
                 if (receiver.getStatus() == "OFFLINE") {
                     System.out.println(String.format("Atualizando peer %s status ONLINE", receiver.getPeerName()));
                     receiver.turnOn();
@@ -63,6 +65,7 @@ public class Connection {
             e.printStackTrace();
         }
 
+        return response;
     }
 
 }

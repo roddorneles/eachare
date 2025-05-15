@@ -26,21 +26,6 @@ public class Message implements Serializable {
         this.args = new ArrayList<String>();
     }
 
-    public String format() {
-
-        if (args.isEmpty()) {
-            return String.format("\"%s:%s %d %s\"", this.senderIp, this.senderPort, this.clock, this.type);
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (String arg : args) {
-                sb.append(arg + " ");
-            }
-            return String.format("\"%s:%s %d %s %s\"", this.senderIp, this.senderPort, this.clock, this.type,
-                    sb.toString());
-        }
-
-    }
-
     @Override
     public String toString() {
         if (args.isEmpty()) {
