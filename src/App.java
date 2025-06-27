@@ -116,6 +116,7 @@ public class App {
                     break;
                 case "9":
                     userInput = "";
+                    leave();
                     break;
             }
 
@@ -156,5 +157,10 @@ public class App {
         for (String s : folder.list()) {
             System.out.println(s);
         }
+    }
+
+    public static void leave() {
+        System.out.println("[" + Thread.currentThread().getName() + "]" + "Saindo...");
+        localPeer.sendBye();
     }
 }

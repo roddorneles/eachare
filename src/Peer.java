@@ -15,6 +15,7 @@ public class Peer extends Thread {
     private int clock;
     private List<NeighborPeer> neighbors;
     private MessageDispatcher dispatcher = new MessageDispatcher();
+    private boolean isOnline = true;
 
     public Peer(String address, String door) {
         this.address = address;
@@ -22,6 +23,7 @@ public class Peer extends Thread {
         this.door = Integer.parseInt(door);
         this.status = "OFFLINE";
         this.clock = 0;
+        this.isOnline = true;
 
         try {
             this.server = new ServerSocket(this.door);
@@ -39,8 +41,6 @@ public class Peer extends Thread {
     }
 
     public void sendGetPeers() {
-
-        List<NeighborPeer> peersToBeAdded = new ArrayList<NeighborPeer>();
 
         List<NeighborPeer> knownNeighbors = new ArrayList<>(this.neighbors);
 
@@ -77,6 +77,23 @@ public class Peer extends Thread {
             }
 
         }
+
+    }
+
+    public void sendBye() {
+
+        for (NeighborPeer p : this.neighbors) {
+
+            if (p.getStatus().equals("ONLINE")) {
+                this.increaseClock();
+                ByeMessage message = new ByeMessage(this.address, this.door, this.clock);
+
+                message.send(p);
+            }
+
+        }
+
+        this.isOnline = false;
 
     }
 
@@ -133,7 +150,7 @@ public class Peer extends Thread {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (this.isOnline) {
 
                 // aguardando conexão na porta do servidor
                 Socket client = this.server.accept();
@@ -158,7 +175,7 @@ public class Peer extends Thread {
                     // envia a resposta do handler para o remetente
                     if (response != null) {
                         if (response.getType() != Message.Type.ACK) {
-                            // ao enviar uma mensagem que não sej ACK aumenta-se o Clock
+                            // ao enviar uma mensagem que não seja ACK para o remetente, aumenta-se o Clock
                             this.increaseClock();
                         }
                         oos.writeObject(response);
