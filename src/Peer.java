@@ -1,16 +1,10 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintStream;
-import java.net.ConnectException;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 public class Peer extends Thread {
 
@@ -20,6 +14,7 @@ public class Peer extends Thread {
     private int door;
     private int clock;
     private List<NeighborPeer> neighbors;
+    private MessageDispatcher dispatcher = new MessageDispatcher();
 
     public Peer(String address, String door) {
         this.address = address;
@@ -37,64 +32,87 @@ public class Peer extends Thread {
 
     public void sendHello(NeighborPeer peer) {
 
-        Message message = new Message(Message.Type.HELLO, this.address, this.door, this.clock);
-        Connection conn = new Connection(message, peer);
-
-        conn.send();
+        this.increaseClock();
+        HelloMessage helloMessage = new HelloMessage(this.address, this.door, this.clock);
+        helloMessage.send(peer);
 
     }
 
     public void sendGetPeers() {
 
-        for (NeighborPeer p : this.neighbors) {
+        List<NeighborPeer> peersToBeAdded = new ArrayList<NeighborPeer>();
 
-            Message message = new Message(Message.Type.GET_PEERS, this.address, this.door, this.clock);
-            Connection conn = new Connection(message, p);
+        List<NeighborPeer> knownNeighbors = new ArrayList<>(this.neighbors);
 
-            conn.send();
-        }
+        for (NeighborPeer p : knownNeighbors) {
 
-    }
+            this.increaseClock();
+            GetPeersMessage message = new GetPeersMessage(this.address, this.door, this.clock);
 
-    private void receiveHello(Message message) {
+            Message response = message.send(p);
 
-    }
+            if (response != null) {
 
-    private Message receiveGetPeers(Message message) {
+                System.out.printf("%s Resposta recebida: %s\n", "[" + Thread.currentThread().getName() + "]",
+                        response.toString());
+                this.increaseClock();
 
-        NeighborPeer sender = new NeighborPeer(message.getSenderIp(), message.getSenderPort());
+                int numberOfNeighbors = Integer.parseInt(response.getArgs().get(0));
 
-        Message listPeersMsg = new Message(Message.Type.PEER_LIST, this.address, this.door, this.clock);
+                for (int i = 1; i <= numberOfNeighbors; i += 1) {
 
-        // encontra todos os vizinhos que não seja o remetente
-        List<NeighborPeer> listPeersNeighbors = new ArrayList<NeighborPeer>();
-        for (NeighborPeer p : neighbors) {
-            if (!p.equals(sender)) {
-                listPeersNeighbors.add(p);
+                    String neighboor = response.getArgs().get(i);
+
+                    String[] neighboorSplited = neighboor.split(":");
+                    String address = neighboorSplited[0];
+                    int port = Integer.parseInt(neighboorSplited[1]);
+                    String status = neighboorSplited[2];
+
+                    NeighborPeer newNeighbor = new NeighborPeer(address, port, status);
+
+                    this.addNeighbor(newNeighbor);
+                    // peersToBeAdded.add(newNeighbor);
+
+                }
+
             }
+
         }
 
-        listPeersMsg.addArg(String.valueOf(listPeersNeighbors.size()));
-
-        for (NeighborPeer p : listPeersNeighbors) {
-            listPeersMsg.addArg(p.fullInfo());
-        }
-
-        System.out.println(listPeersMsg.toString());
-
-        return listPeersMsg;
+        // adiciona os peers descobertos na lista de vizinhos de peers
+        // for (NeighborPeer p : peersToBeAdded) {
+        // this.addNeighbor(p);
+        // }
 
     }
 
     public void increaseClock() {
         this.clock += 1;
-        System.out.println(String.format("=> Atualizando relogio para %d", this.clock));
+        System.out.println("[" + Thread.currentThread().getName() + "]"
+                + String.format("=> Atualizando relogio para %d", this.clock));
     }
 
     public void addNeighbor(NeighborPeer p) {
-        if (!this.neighbors.contains(p)) {
+
+        int index = this.neighbors.indexOf(p);
+
+        // se encontrou aquele peer na lista de vizinhos, atualiza o estado. Se não,
+        // adiciona na lista de vizinhos
+        if (index != -1) {
+            NeighborPeer neighbor = this.neighbors.get(index);
+            if (p.getStatus().equals("ONLINE")) {
+                neighbor.turnOn();
+            } else if (p.getStatus().equals("OFFLINE")) {
+                neighbor.turnOff();
+            }
+
+        } else {
             this.neighbors.add(p);
+            System.out.println("[" + Thread.currentThread().getName() + "]"
+                    + String.format("Adicionando novo peer %s:%d status %s", p.getAddress(), p.getDoor(),
+                            p.getStatus()));
         }
+
     }
 
     public List<NeighborPeer> getNeighbors() {
@@ -105,6 +123,18 @@ public class Peer extends Thread {
         return String.format("%s:%s", this.address, this.door);
     }
 
+    public int getClock() {
+        return this.clock;
+    }
+
+    public int getPort() {
+        return this.door;
+    }
+
+    public String getAddress() {
+        return this.address;
+    }
+
     // Função da thread a ser executadas emoutra porta para simular peer
     @Override
     public void run() {
@@ -113,6 +143,8 @@ public class Peer extends Thread {
 
                 // aguardando conexão na porta do servidor
                 Socket client = this.server.accept();
+                // ao receber uma mensagem, aumenta-se o clock
+                this.increaseClock();
                 ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
                 ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
 
@@ -125,21 +157,16 @@ public class Peer extends Thread {
                 }
 
                 if (received != null) {
-                    switch (received.getType()) {
-                        case HELLO:
-                            receiveHello(received);
-                            Message ack = new Message(Message.Type.ACK, this.address, this.door, this.clock);
-                            oos.writeObject(ack);
-                            oos.flush();
-                            break;
 
-                        case GET_PEERS:
-                            receiveGetPeers(received);
-                            break;
+                    // envia a mensagem para o handler responsável
+                    Message response = dispatcher.dispatch(this, received);
 
-                        default:
-                            break;
+                    // envia a resposta do handler para o remetente
+                    if (response != null) {
+                        oos.writeObject(response);
+                        oos.flush();
                     }
+
                 }
 
                 client.close();

@@ -49,7 +49,8 @@ public class App {
                 String peerDoor = nextLine.split(":")[1];
 
                 System.out.println("Adicionando novo peer " + nextLine + " status OFFLINE");
-                localPeer.addNeighbor(new NeighborPeer(peerAddress, Integer.parseInt(peerDoor)));
+                // localPeer.addNeighbor(new NeighborPeer(peerAddress,
+                // Integer.parseInt(peerDoor)));
 
                 peers.add(new Peer(peerAddress, peerDoor));
 
@@ -61,8 +62,16 @@ public class App {
         }
 
         for (Peer p : peers) {
+            p.setName(p.getPeerName());
             p.start();
         }
+
+        localPeer.addNeighbor(new NeighborPeer("127.0.0.1", 5001));
+
+        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 8000));
+        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 5002));
+
+        peers.get(1).addNeighbor(new NeighborPeer("127.0.0.1", 5003));
 
         // abre a pasta a ser compartilhada
         File folder = new File(sharedDir);
@@ -127,6 +136,7 @@ public class App {
         String userInput = sc.nextLine();
 
         if (!userInput.equals("0")) {
+            System.out.println(neighbors.size());
             NeighborPeer selectedPeer = neighbors.get(Integer.parseInt(userInput) - 1);
             localPeer.sendHello(selectedPeer);
         }

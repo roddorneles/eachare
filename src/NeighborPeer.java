@@ -11,6 +11,12 @@ public class NeighborPeer {
         this.status = "OFFLINE";
     }
 
+    public NeighborPeer(String address, int door, String status) {
+        this.address = address;
+        this.door = door;
+        this.status = status;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -30,10 +36,16 @@ public class NeighborPeer {
 
     public void turnOn() {
         this.status = "ONLINE";
+        System.out.println("[" + Thread.currentThread().getName() + "]"
+                + String.format("Atualizando peer %s:%d status %s", this.getAddress(), this.getDoor(),
+                        this.getStatus()));
     }
 
     public void turnOff() {
         this.status = "OFFLINE";
+        System.out.println("[" + Thread.currentThread().getName() + "]"
+                + String.format("Atualizando peer %s:%d status %s", this.getAddress(), this.getDoor(),
+                        this.getStatus()));
     }
 
     public String getPeerName() {
