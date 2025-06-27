@@ -71,18 +71,12 @@ public class Peer extends Thread {
                     NeighborPeer newNeighbor = new NeighborPeer(address, port, status);
 
                     this.addNeighbor(newNeighbor);
-                    // peersToBeAdded.add(newNeighbor);
 
                 }
 
             }
 
         }
-
-        // adiciona os peers descobertos na lista de vizinhos de peers
-        // for (NeighborPeer p : peersToBeAdded) {
-        // this.addNeighbor(p);
-        // }
 
     }
 
@@ -143,8 +137,6 @@ public class Peer extends Thread {
 
                 // aguardando conexão na porta do servidor
                 Socket client = this.server.accept();
-                // ao receber uma mensagem, aumenta-se o clock
-                this.increaseClock();
                 ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
                 ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
 
@@ -158,11 +150,17 @@ public class Peer extends Thread {
 
                 if (received != null) {
 
+                    // ao receber uma mensagem, aumenta-se o clock
+                    this.increaseClock();
                     // envia a mensagem para o handler responsável
                     Message response = dispatcher.dispatch(this, received);
 
                     // envia a resposta do handler para o remetente
                     if (response != null) {
+                        if (response.getType() != Message.Type.ACK) {
+                            // ao enviar uma mensagem que não sej ACK aumenta-se o Clock
+                            this.increaseClock();
+                        }
                         oos.writeObject(response);
                         oos.flush();
                     }

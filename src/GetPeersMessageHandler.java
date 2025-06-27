@@ -5,7 +5,7 @@ public class GetPeersMessageHandler implements MessageHandler {
     @Override
     public Message handle(Peer peer, Message message) {
 
-        peer.increaseClock();
+        // peer.increaseClock();
 
         NeighborPeer sender = new NeighborPeer(message.getSenderIp(), message.getSenderPort());
 

@@ -14,6 +14,8 @@ public class App {
     // cria uma lista de peers que são os vizinhos
     public static List<Peer> peers = new ArrayList<Peer>();
     public static Peer localPeer;
+    public static File folder;
+    public static File[] sharedFiles;
 
     public static void main(String[] args) throws Exception {
         System.out.println("Hello, World!");
@@ -74,8 +76,8 @@ public class App {
         peers.get(1).addNeighbor(new NeighborPeer("127.0.0.1", 5003));
 
         // abre a pasta a ser compartilhada
-        File folder = new File(sharedDir);
-        File[] sharedFiles = folder.listFiles();
+        folder = new File(sharedDir);
+        sharedFiles = folder.listFiles();
 
         localPeer.start();
 
@@ -108,6 +110,9 @@ public class App {
                     break;
                 case "2":
                     getPeers();
+                    break;
+                case "3":
+                    listLocalFiles();
                     break;
                 case "9":
                     userInput = "";
@@ -145,5 +150,11 @@ public class App {
 
     public static void getPeers() {
         localPeer.sendGetPeers();
+    }
+
+    public static void listLocalFiles() {
+        for (String s : folder.list()) {
+            System.out.println(s);
+        }
     }
 }

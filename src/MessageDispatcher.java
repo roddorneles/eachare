@@ -8,6 +8,7 @@ public class MessageDispatcher {
     public MessageDispatcher() {
         handlers.put(Message.Type.HELLO, new HelloMessageHandler());
         handlers.put(Message.Type.GET_PEERS, new GetPeersMessageHandler());
+        handlers.put(Message.Type.BYE, new GetPeersMessageHandler());
     }
 
     public Message dispatch(Peer peer, Message message) {
