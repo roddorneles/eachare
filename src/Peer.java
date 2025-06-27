@@ -34,8 +34,7 @@ public class Peer extends Thread {
 
     public void sendHello(NeighborPeer peer) {
 
-        this.increaseClock();
-        HelloMessage helloMessage = new HelloMessage(this.address, this.door, this.clock);
+        HelloMessage helloMessage = new HelloMessage(this);
         helloMessage.send(peer);
 
     }
@@ -46,16 +45,10 @@ public class Peer extends Thread {
 
         for (NeighborPeer p : knownNeighbors) {
 
-            this.increaseClock();
-            GetPeersMessage message = new GetPeersMessage(this.address, this.door, this.clock);
-
+            GetPeersMessage message = new GetPeersMessage(this);
             Message response = message.send(p);
 
             if (response != null) {
-
-                System.out.printf("%s Resposta recebida: %s\n", "[" + Thread.currentThread().getName() + "]",
-                        response.toString());
-                this.increaseClock();
 
                 int numberOfNeighbors = Integer.parseInt(response.getArgs().get(0));
 
@@ -68,7 +61,7 @@ public class Peer extends Thread {
                     int port = Integer.parseInt(neighboorSplited[1]);
                     String status = neighboorSplited[2];
 
-                    NeighborPeer newNeighbor = new NeighborPeer(address, port, status);
+                    NeighborPeer newNeighbor = new NeighborPeer(address, port, status, response.getClock());
 
                     this.addNeighbor(newNeighbor);
 
@@ -85,9 +78,8 @@ public class Peer extends Thread {
         for (NeighborPeer p : this.neighbors) {
 
             if (p.getStatus().equals("ONLINE")) {
-                this.increaseClock();
-                ByeMessage message = new ByeMessage(this.address, this.door, this.clock);
 
+                ByeMessage message = new ByeMessage(this);
                 message.send(p);
             }
 
@@ -103,6 +95,8 @@ public class Peer extends Thread {
                 + String.format("=> Atualizando relogio para %d", this.clock));
     }
 
+    // Adiciona um novo vizinho se ele não existe na lista de vizinhos conhecidos.
+    // Se já existe, o status dele é atualizado
     public void addNeighbor(NeighborPeer p) {
 
         int index = this.neighbors.indexOf(p);
@@ -116,7 +110,9 @@ public class Peer extends Thread {
             } else if (p.getStatus().equals("OFFLINE")) {
                 neighbor.turnOff();
             }
-
+            if (neighbor.getClock() < p.getClock()) {
+                neighbor.setClock(p.getClock());
+            }
         } else {
             this.neighbors.add(p);
             System.out.println("[" + Thread.currentThread().getName() + "]"
@@ -168,7 +164,9 @@ public class Peer extends Thread {
                 if (received != null) {
 
                     // ao receber uma mensagem, aumenta-se o clock
+                    this.clock = Math.max(this.clock, received.getClock());
                     this.increaseClock();
+
                     // envia a mensagem para o handler responsável
                     Message response = dispatcher.dispatch(this, received);
 
@@ -177,6 +175,7 @@ public class Peer extends Thread {
                         if (response.getType() != Message.Type.ACK) {
                             // ao enviar uma mensagem que não seja ACK para o remetente, aumenta-se o Clock
                             this.increaseClock();
+                            response.setClock(this.getClock());
                         }
                         oos.writeObject(response);
                         oos.flush();
@@ -190,6 +189,10 @@ public class Peer extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+    }
+
+    private void updateNeighborState(Message message) {
 
     }
 

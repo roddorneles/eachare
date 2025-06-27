@@ -60,4 +60,12 @@ public class Message implements Serializable {
         this.args.add(arg);
     }
 
+    public int getClock() {
+        return this.clock;
+    }
+
+    public void setClock(int clock) {
+        this.clock = clock;
+    }
+
 }

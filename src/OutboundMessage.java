@@ -7,14 +7,16 @@ import java.net.SocketTimeoutException;
 
 public abstract class OutboundMessage {
 
+    protected final Peer sender;
     protected final String senderIp;
     protected final int senderPort;
-    protected final int clock;
+    protected int clock;
 
-    public OutboundMessage(String senderIp, int senderPort, int clock) {
-        this.senderIp = senderIp;
-        this.senderPort = senderPort;
-        this.clock = clock;
+    public OutboundMessage(Peer sender) {
+        this.sender = sender;
+        this.senderIp = sender.getAddress();
+        this.senderPort = sender.getPort();
+        this.clock = sender.getClock();
     }
 
     // Cada tipo se constroi
@@ -22,7 +24,13 @@ public abstract class OutboundMessage {
 
     // Lógica de envio compartilhada
     public Message send(NeighborPeer receiver) {
+
+        // Aumenta-se o clock antes de enviar qualquer mensagem
+        sender.increaseClock();
+        this.clock = sender.getClock();
+
         Message message = build();
+
         try {
             Socket socket = new Socket(receiver.getAddress(), receiver.getDoor());
             socket.setSoTimeout(2000);
@@ -41,11 +49,17 @@ public abstract class OutboundMessage {
             // estado do peer vizinho para online
             if ("OFFLINE".equals(receiver.getStatus())) {
                 receiver.turnOn();
-                // System.out.printf("%s Atualizando peer %s status ONLINE%n",
-                // "[" + Thread.currentThread().getName() + "]", receiver.getPeerName());
             }
 
             Message response = (Message) ois.readObject();
+
+            // Se a mensagem de resposta não for um ACK, aumenta-se o clock
+            if (response.getType() != Message.Type.ACK) {
+                System.out.printf("%s Resposta recebida: %s\n", "[" + Thread.currentThread().getName() + "]",
+                        response.toString());
+                sender.increaseClock();
+            }
+
             socket.close();
 
             return response;

@@ -2,7 +2,8 @@ public class HelloMessageHandler implements MessageHandler {
     @Override
     public Message handle(Peer peer, Message message) {
         // Cria um peer vizinho que está associado a mensagem que ele recebeu
-        NeighborPeer sender = new NeighborPeer(message.getSenderIp(), message.getSenderPort(), "ONLINE");
+        NeighborPeer sender = new NeighborPeer(message.getSenderIp(), message.getSenderPort(), "ONLINE",
+                message.getClock());
 
         System.out.println("[" + Thread.currentThread().getName() + "]" +
                 String.format("Mensagem recebida: %s", message.toString()));

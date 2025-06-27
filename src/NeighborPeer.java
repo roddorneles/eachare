@@ -4,17 +4,13 @@ public class NeighborPeer {
     private String address;
     private int door;
     private String status;
+    private int clock = 0;
 
-    public NeighborPeer(String address, int door) {
-        this.address = address;
-        this.door = door;
-        this.status = "OFFLINE";
-    }
-
-    public NeighborPeer(String address, int door, String status) {
+    public NeighborPeer(String address, int door, String status, int clock) {
         this.address = address;
         this.door = door;
         this.status = status;
+        this.clock = clock;
     }
 
     @Override
@@ -53,7 +49,7 @@ public class NeighborPeer {
     }
 
     public String fullInfo() {
-        return String.format("%s:%d:%s:0", address, door, status);
+        return String.format("%s:%d:%s:%d", address, door, status, clock);
     }
 
     public String getAddress() {
@@ -66,6 +62,14 @@ public class NeighborPeer {
 
     public String getStatus() {
         return this.status;
+    }
+
+    public void setClock(int clock) {
+        this.clock = clock;
+    }
+
+    public int getClock() {
+        return this.clock;
     }
 
 }

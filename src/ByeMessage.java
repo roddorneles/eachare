@@ -1,6 +1,6 @@
 public class ByeMessage extends OutboundMessage {
-    public ByeMessage(String senderIp, int senderPort, int clock) {
-        super(senderIp, senderPort, clock);
+    public ByeMessage(Peer peer) {
+        super(peer);
     }
 
     @Override

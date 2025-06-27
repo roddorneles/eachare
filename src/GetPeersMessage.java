@@ -1,7 +1,7 @@
 public class GetPeersMessage extends OutboundMessage {
 
-    public GetPeersMessage(String senderIp, int senderPort, int clock) {
-        super(senderIp, senderPort, clock);
+    public GetPeersMessage(Peer peer) {
+        super(peer);
     }
 
     @Override

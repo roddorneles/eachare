@@ -1,7 +1,7 @@
 public class HelloMessage extends OutboundMessage {
 
-    public HelloMessage(String senderIp, int senderPort, int clock) {
-        super(senderIp, senderPort, clock);
+    public HelloMessage(Peer peer) {
+        super(peer);
     }
 
     @Override

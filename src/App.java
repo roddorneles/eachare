@@ -68,12 +68,12 @@ public class App {
             p.start();
         }
 
-        localPeer.addNeighbor(new NeighborPeer("127.0.0.1", 5001));
+        localPeer.addNeighbor(new NeighborPeer("127.0.0.1", 5001, "ONLINE", 0));
 
-        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 8000));
-        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 5002));
+        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 8000, "ONLINE", 0));
+        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 5002, "ONLINE", 0));
 
-        peers.get(1).addNeighbor(new NeighborPeer("127.0.0.1", 5003));
+        peers.get(1).addNeighbor(new NeighborPeer("127.0.0.1", 5003, "ONLINE", 0));
 
         // abre a pasta a ser compartilhada
         folder = new File(sharedDir);
