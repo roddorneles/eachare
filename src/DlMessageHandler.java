@@ -16,13 +16,13 @@ public class DlMessageHandler implements MessageHandler {
         Message fileMsg = new Message(Message.Type.FILE, peer.getAddress(), peer.getPort(), peer.getClock());
 
         String filename = message.getArgs().get(0);
-        int number1 = Integer.parseInt(message.getArgs().get(1));
-        int number2 = Integer.parseInt(message.getArgs().get(2));
+        int chunkSize = Integer.parseInt(message.getArgs().get(1));
+        int index = Integer.parseInt(message.getArgs().get(2));
 
         File targetFile = null;
 
         // Procurar o arquivo pelo nome
-        for (File f : peer.getSharedFiles()) {
+        for (File f : peer.getSharedFolder().listFiles()) {
             if (f.getName().equals(filename)) {
                 targetFile = f;
                 break;
@@ -35,18 +35,30 @@ public class DlMessageHandler implements MessageHandler {
         }
 
         try {
-            // Leitura binária do arquivo
+            long fileLength = targetFile.length();
+            long offset = (long) index * chunkSize;
+
+            // Se o índice for inválido, retorna sem conteúdo
+            if (offset >= fileLength) {
+                System.out.printf("Chunk %d fora do limite do arquivo %s%n", index, filename);
+                return fileMsg;
+            }
+
+            int bytesToRead = (int) Math.min(chunkSize, fileLength - offset);
+            byte[] chunkBytes = new byte[bytesToRead];
+
             FileInputStream fis = new FileInputStream(targetFile);
-            byte[] fileBytes = new byte[(int) targetFile.length()];
-            fis.read(fileBytes);
+            fis.skip(offset); // pula para a posição do chunk
+            fis.read(chunkBytes, 0, bytesToRead); // lê somente o pedaço
             fis.close();
 
-            // Codificação Base64 (sem quebras de linha)
-            String base64 = Base64.getEncoder().encodeToString(fileBytes);
+            // Codificação Base64 do chunk
+            String base64 = Base64.getEncoder().encodeToString(chunkBytes);
 
+            // Adiciona informações à resposta
             fileMsg.addArg(filename);
-            fileMsg.addArg(String.valueOf(number1));
-            fileMsg.addArg(String.valueOf(number2));
+            fileMsg.addArg(String.valueOf(chunkSize));
+            fileMsg.addArg(String.valueOf(index));
             fileMsg.addArg(base64);
 
         } catch (IOException e) {

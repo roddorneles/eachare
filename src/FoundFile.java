@@ -7,16 +7,6 @@ public class FoundFile {
     private String filename;
     private int size;
     private List<NeighborPeer> peers;
-    private String address;
-    private int port;
-
-    public FoundFile(String filename, int size, String address, int port) {
-        this.filename = filename;
-        this.size = size;
-        this.address = address;
-        this.port = port;
-        this.peers = new ArrayList<NeighborPeer>();
-    }
 
     public FoundFile(String filename, int size) {
         this.filename = filename;
@@ -65,12 +55,8 @@ public class FoundFile {
         return peersStr;
     }
 
-    public String getAddress() {
-        return address;
-    }
-
-    public int getPort() {
-        return port;
+    public List<NeighborPeer> getPeers() {
+        return this.peers;
     }
 
 }

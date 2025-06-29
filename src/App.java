@@ -97,8 +97,7 @@ public class App {
         folder = new File(sharedDir);
         sharedFiles = folder.listFiles();
 
-        localPeer.setFolder(folder);
-        localPeer.setSharedFiles(sharedFiles);
+        localPeer.setSharedFolder(folder);
 
         localPeer.start();
 
@@ -181,7 +180,7 @@ public class App {
     }
 
     public static void listLocalFiles() {
-        for (String s : localPeer.getFolder().list()) {
+        for (String s : localPeer.getSharedFolder().list()) {
             System.out.println(s);
         }
     }

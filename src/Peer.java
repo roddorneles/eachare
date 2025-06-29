@@ -1,3 +1,4 @@
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -22,7 +23,6 @@ public class Peer extends Thread {
     private MessageDispatcher dispatcher = new MessageDispatcher();
     private boolean isOnline;
     private File folder;
-    private File[] sharedFiles;
     private int chunckSize;
 
     public Peer(String address, String door) {
@@ -129,21 +129,72 @@ public class Peer extends Thread {
 
     public void sendDl(FoundFile file) {
 
-        NeighborPeer selectedPeer = this.findNeighbor(file.getAddress(), file.getPort());
-        System.out.println(selectedPeer.fullInfo());
+        int fileSize = file.getSize();
+        int chunkSize = this.chunckSize;
+        int totalChunks = (int) Math.ceil((double) fileSize / chunkSize);
 
-        DlMessage dlMessage = new DlMessage(this, file.getFilename());
+        String[] base64Chunks = new String[totalChunks];
 
-        Message response = dlMessage.send(selectedPeer);
+        List<Thread> threads = new ArrayList<>();
 
-        if (response != null) {
-            String filename = response.getArgs().get(0);
-            String base64Content = response.getArgs().get(3);
+        for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            int finalChunkIndex = chunkIndex;
 
-            this.saveBase64ToFile(base64Content, filename, this.folder);
+            // Escolher um peer para esse chunk (distribuído de forma simples)
+            NeighborPeer peer = file.getPeers().get(finalChunkIndex % file.getPeers().size());
 
-            // Mensagem final
-            System.out.println("Download do arquivo " + filename + " finalizado.");
+            Thread thread = new Thread(() -> {
+                DlMessage dlMessage = new DlMessage(this, file.getFilename(), chunkSize, finalChunkIndex);
+                Message response = dlMessage.send(peer);
+
+                if (response != null) {
+                    String base64Content = response.getArgs().get(3);
+                    base64Chunks[finalChunkIndex] = base64Content;
+                } else {
+                    System.err.printf("Chunk %d falhou com o peer %s%n", finalChunkIndex, peer.fullInfo());
+                }
+            });
+
+            threads.add(thread);
+            thread.start();
+        }
+
+        // Aguarda todas as threads finalizarem
+        for (Thread t : threads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                System.err.println("Thread interrompida.");
+            }
+        }
+
+        // Verificar se todos os chunks foram recebidos
+        for (int i = 0; i < base64Chunks.length; i++) {
+            if (base64Chunks[i] == null) {
+                System.err.printf("Erro: chunk %d não foi recebido.%n", i);
+                return;
+            }
+        }
+
+        // Juntar os chunks em um único array de bytes
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            for (String chunk : base64Chunks) {
+                byte[] chunkBytes = Base64.getDecoder().decode(chunk);
+                baos.write(chunkBytes);
+            }
+
+            // Salvar o arquivo completo
+            File outputFile = new File(this.folder, file.getFilename());
+            try (FileOutputStream fos = new FileOutputStream(outputFile)) {
+                fos.write(baos.toByteArray());
+            }
+
+            System.out.println("Download do arquivo " + file.getFilename() + " finalizado.");
+
+        } catch (IOException e) {
+            System.err.println("Erro ao salvar o arquivo final.");
+            e.printStackTrace();
         }
 
     }
@@ -256,20 +307,12 @@ public class Peer extends Thread {
         return this.address;
     }
 
-    public File getFolder() {
+    public File getSharedFolder() {
         return folder;
     }
 
-    public void setFolder(File folder) {
+    public void setSharedFolder(File folder) {
         this.folder = folder;
-    }
-
-    public File[] getSharedFiles() {
-        return sharedFiles;
-    }
-
-    public void setSharedFiles(File[] sharedFiles) {
-        this.sharedFiles = sharedFiles;
     }
 
     public int getChunckSize() {
@@ -288,6 +331,11 @@ public class Peer extends Thread {
 
                 // aguardando conexão na porta do servidor
                 Socket client = this.server.accept();
+
+                Thread handlerThread = new Thread( () -> {
+                    
+                })
+
                 ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
                 ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
 

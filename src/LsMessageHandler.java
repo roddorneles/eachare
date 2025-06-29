@@ -12,13 +12,13 @@ public class LsMessageHandler implements MessageHandler {
 
         Message lsListMsg = new Message(Message.Type.LS_LIST, peer.getAddress(), peer.getPort(), peer.getClock());
 
-        if (peer.getSharedFiles() != null || peer.getSharedFiles().length > 0) {
-            int amountSharedFiles = peer.getSharedFiles().length;
+        if (peer.getSharedFolder().listFiles() != null || peer.getSharedFolder().listFiles().length > 0) {
+            int amountSharedFiles = peer.getSharedFolder().listFiles().length;
 
             lsListMsg.addArg(String.valueOf(amountSharedFiles));
 
             for (int i = 0; i < amountSharedFiles; i += 1) {
-                File file = peer.getSharedFiles()[i];
+                File file = peer.getSharedFolder().listFiles()[i];
                 lsListMsg.addArg(String.format("%s:%d", file.getName(), file.length()));
             }
         }
