@@ -9,6 +9,10 @@ public class Message implements Serializable {
         GET_PEERS,
         PEER_LIST,
         BYE,
+        LS,
+        LS_LIST,
+        DL,
+        FILE,
         ACK
     }
 

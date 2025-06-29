@@ -19,7 +19,7 @@ public class ByeMessageHandler implements MessageHandler {
         // peer.addNeighbor(sender);
         // }
 
-        peer.addNeighbor(sender);
+        peer.updateNeighbor(sender);
 
         return new Message(Message.Type.ACK, peer.getAddress(), peer.getPort(), peer.getClock());
     }

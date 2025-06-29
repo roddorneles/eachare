@@ -25,18 +25,18 @@ public abstract class OutboundMessage {
     // Lógica de envio compartilhada
     public Message send(NeighborPeer receiver) {
 
-        // Aumenta-se o clock antes de enviar qualquer mensagem
-        sender.increaseClock();
-        this.clock = sender.getClock();
-
-        Message message = build();
-
         try {
             Socket socket = new Socket(receiver.getAddress(), receiver.getDoor());
             socket.setSoTimeout(2000);
 
             ObjectOutputStream oos = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream ois = new ObjectInputStream(socket.getInputStream());
+
+            // Aumenta-se o clock antes de enviar qualquer mensagem
+            sender.increaseClock();
+            this.clock = sender.getClock();
+
+            Message message = this.build();
 
             System.out.printf("%s Enviando mensagem %s para %s%n", "[" + Thread.currentThread().getName() + "]",
                     message.toString(), receiver.getPeerName());
@@ -53,11 +53,16 @@ public abstract class OutboundMessage {
 
             Message response = (Message) ois.readObject();
 
-            // Se a mensagem de resposta não for um ACK, aumenta-se o clock
+            // Se a mensagem de resposta não for um ACK, atualize-se o clock
             if (response.getType() != Message.Type.ACK) {
                 System.out.printf("%s Resposta recebida: %s\n", "[" + Thread.currentThread().getName() + "]",
                         response.toString());
+                sender.setClock(Math.max(this.clock, response.getClock()));
                 sender.increaseClock();
+
+                if (receiver.getClock() < response.getClock()) {
+                    receiver.setClock(response.getClock());
+                }
             }
 
             socket.close();

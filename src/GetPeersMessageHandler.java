@@ -7,7 +7,7 @@ public class GetPeersMessageHandler implements MessageHandler {
 
         NeighborPeer sender = new NeighborPeer(message.getSenderIp(), message.getSenderPort(), "ONLINE",
                 message.getClock());
-        peer.addNeighbor(sender);
+        peer.updateNeighbor(sender);
 
         Message listPeersMsg = new Message(Message.Type.PEER_LIST, peer.getAddress(), peer.getPort(), peer.getClock());
 

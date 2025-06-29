@@ -17,16 +17,17 @@ public class App {
     public static File folder;
     public static File[] sharedFiles;
 
+    private static final boolean DEBUG = false;
+
     public static void main(String[] args) throws Exception {
-        System.out.println("Hello, World!");
 
         String endpoint = "";
         String neighboursFile = "";
         String sharedDir = "";
 
         if (args == null || args.length == 0) {
-            endpoint = "127.0.0.1:8000";
-            neighboursFile = "vizinhos.txt";
+            endpoint = "127.0.0.1:8005";
+            neighboursFile = "vizinhos8005.txt";
             sharedDir = "compartilhar";
         } else {
             endpoint = args[0];
@@ -40,6 +41,7 @@ public class App {
 
         // criando o peer "local"
         localPeer = new Peer(localPeerAddress, localPeerDoor);
+        localPeer.setClock(0);
 
         try {
             BufferedReader br = new BufferedReader(new FileReader(neighboursFile));
@@ -50,11 +52,14 @@ public class App {
                 String peerAddress = nextLine.split(":")[0];
                 String peerDoor = nextLine.split(":")[1];
 
-                System.out.println("Adicionando novo peer " + nextLine + " status OFFLINE");
-                // localPeer.addNeighbor(new NeighborPeer(peerAddress,
-                // Integer.parseInt(peerDoor)));
+                if (!DEBUG) {
+                    localPeer.updateNeighbor(new NeighborPeer(peerAddress,
+                            Integer.parseInt(peerDoor), "OFFLINE", 0));
+                }
 
-                peers.add(new Peer(peerAddress, peerDoor));
+                if (DEBUG) {
+                    peers.add(new Peer(peerAddress, peerDoor));
+                }
 
                 nextLine = br.readLine();
             }
@@ -63,21 +68,36 @@ public class App {
             System.err.println("Erro ao ler o arquivo: " + e.getMessage());
         }
 
-        for (Peer p : peers) {
-            p.setName(p.getPeerName());
-            p.start();
+        if (DEBUG) {
+            for (Peer p : peers) {
+                p.setName(p.getPeerName());
+                p.start();
+            }
+
+            localPeer.updateNeighbor(new NeighborPeer("127.0.0.1", 8006, "ONLINE", 10));
+            localPeer.updateNeighbor(new NeighborPeer("127.0.0.1", 8007, "ONLINE", 15));
+
+            peers.get(0).updateNeighbor(new NeighborPeer("127.0.0.1", 8005, "ONLINE",
+                    11));
+            peers.get(0).updateNeighbor(new NeighborPeer("127.0.0.1", 8008, "ONLINE",
+                    16));
+            peers.get(0).updateNeighbor(new NeighborPeer("127.0.0.1", 8009, "ONLINE",
+                    13));
+
+            peers.get(1).updateNeighbor(new NeighborPeer("127.0.0.1", 8005, "ONLINE",
+                    11));
+            peers.get(1).updateNeighbor(new NeighborPeer("127.0.0.1", 8008, "ONLINE",
+                    17));
+            peers.get(1).updateNeighbor(new NeighborPeer("127.0.0.1", 8009, "ONLINE",
+                    12));
         }
-
-        localPeer.addNeighbor(new NeighborPeer("127.0.0.1", 5001, "ONLINE", 0));
-
-        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 8000, "ONLINE", 0));
-        peers.get(0).addNeighbor(new NeighborPeer("127.0.0.1", 5002, "ONLINE", 0));
-
-        peers.get(1).addNeighbor(new NeighborPeer("127.0.0.1", 5003, "ONLINE", 0));
 
         // abre a pasta a ser compartilhada
         folder = new File(sharedDir);
         sharedFiles = folder.listFiles();
+
+        localPeer.setFolder(folder);
+        localPeer.setSharedFiles(sharedFiles);
 
         localPeer.start();
 
@@ -114,6 +134,12 @@ public class App {
                 case "3":
                     listLocalFiles();
                     break;
+                case "4":
+                    searchFile();
+                    break;
+                case "6":
+                    changeChunckSize();
+                    break;
                 case "9":
                     userInput = "";
                     leave();
@@ -135,14 +161,14 @@ public class App {
         List<NeighborPeer> neighbors = localPeer.getNeighbors();
 
         for (NeighborPeer p : neighbors) {
-            System.out.println(String.format("\t[%d] %s:%s %s", i, p.getAddress(), p.getDoor(), p.getStatus()));
+            System.out.println(
+                    String.format("\t[%d] %s:%s %s %d", i, p.getAddress(), p.getDoor(), p.getStatus(), p.getClock()));
             i += 1;
         }
 
         String userInput = sc.nextLine();
 
         if (!userInput.equals("0")) {
-            System.out.println(neighbors.size());
             NeighborPeer selectedPeer = neighbors.get(Integer.parseInt(userInput) - 1);
             localPeer.sendHello(selectedPeer);
         }
@@ -154,13 +180,52 @@ public class App {
     }
 
     public static void listLocalFiles() {
-        for (String s : folder.list()) {
+        for (String s : localPeer.getFolder().list()) {
             System.out.println(s);
         }
     }
 
+    public static void searchFile() {
+
+        List<FoundFile> foundFiles = localPeer.sendList();
+
+        System.out.println("Arquivos encontrados na rede:");
+
+        System.out.printf("  %-20s | %-8s | %-15s\n", "Nome", "Tamanho", "Peer");
+
+        // Linha 0 - Cancelar
+        System.out.printf("  [ %-2s] %-14s | %-8s | %-15s\n", "0", "<Cancelar>", "", "");
+
+        for (int i = 0; i < foundFiles.size(); i++) {
+            FoundFile foundFile = foundFiles.get(i);
+            System.out.printf("  [ %-2d] %-14s | %-8s | %-15s\n", i + 1, foundFile.getFilename(), foundFile.getSize(),
+                    foundFile.getAddress() + ":" + foundFile.getPort());
+        }
+
+        Scanner sc = new Scanner(System.in);
+        String userInput = sc.nextLine();
+
+        if (!userInput.equals("0")) {
+
+            FoundFile selectedFile = foundFiles.get(Integer.parseInt(userInput) - 1);
+            localPeer.sendDl(selectedFile);
+        }
+
+    }
+
+    public static void changeChunckSize() {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Digite o novo tamanho de chunck: ");
+        String userInput = sc.nextLine();
+
+        int newChunkSize = Integer.parseInt(userInput);
+
+        localPeer.setChunckSize(newChunkSize);
+
+        System.out.println("\t Tamanho de chunck alterado: " + localPeer.getChunckSize());
+    }
+
     public static void leave() {
-        System.out.println("[" + Thread.currentThread().getName() + "]" + "Saindo...");
         localPeer.sendBye();
     }
 }
