@@ -332,49 +332,63 @@ public class Peer extends Thread {
                 // aguardando conexão na porta do servidor
                 Socket client = this.server.accept();
 
-                Thread handlerThread = new Thread( () -> {
-                    
-                })
+                Thread handlerThread = new Thread(() -> {
 
-                ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
-                ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
+                    try {
 
-                Message received = null;
+                        ObjectInputStream ois = new ObjectInputStream(client.getInputStream());
+                        ObjectOutputStream oos = new ObjectOutputStream(client.getOutputStream());
 
-                try {
-                    received = (Message) ois.readObject();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
-                }
+                        Message received = null;
 
-                if (received != null) {
-
-                    // ao receber uma mensagem, atualiza-se o clock
-                    this.clock = Math.max(this.clock, received.getClock());
-                    this.increaseClock();
-
-                    // envia a mensagem para o handler responsável
-                    Message response = dispatcher.dispatch(this, received);
-
-                    // envia a resposta do handler para o remetente
-                    if (response != null) {
-                        if (response.getType() != Message.Type.ACK) {
-                            // ao enviar uma mensagem que não seja ACK para o remetente, aumenta-se o Clock
-                            this.increaseClock();
-                            response.setClock(this.getClock());
-
-                            System.out.printf("%s Encaminhando resposta: %s\n",
-                                    "[" + Thread.currentThread().getName() + "]",
-                                    response.toString());
-
+                        try {
+                            received = (Message) ois.readObject();
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
                         }
-                        oos.writeObject(response);
-                        oos.flush();
+
+                        if (received != null) {
+
+                            // ao receber uma mensagem, atualiza-se o clock
+                            this.clock = Math.max(this.clock, received.getClock());
+                            this.increaseClock();
+
+                            // envia a mensagem para o handler responsável
+                            Message response = dispatcher.dispatch(this, received);
+
+                            // envia a resposta do handler para o remetente
+                            if (response != null) {
+                                if (response.getType() != Message.Type.ACK) {
+                                    // ao enviar uma mensagem que não seja ACK para o remetente, aumenta-se o Clock
+                                    this.increaseClock();
+                                    response.setClock(this.getClock());
+
+                                    System.out.printf("%s Encaminhando resposta: %s\n",
+                                            "[" + Thread.currentThread().getName() + "]",
+                                            response.toString());
+
+                                }
+                                oos.writeObject(response);
+                                oos.flush();
+                            }
+                        }
+
+                        client.close();
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            client.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
 
-                }
+                });
 
-                client.close();
+                handlerThread.start();
+
             }
 
         } catch (IOException e) {
