@@ -7,7 +7,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Peer extends Thread {
 
@@ -78,7 +80,7 @@ public class Peer extends Thread {
         }
     }
 
-    public List<FoundFile> sendList() {
+    public Map<FoundFile, FoundFile> sendList() {
 
         List<Message> responses = new ArrayList<Message>();
 
@@ -91,7 +93,7 @@ public class Peer extends Thread {
             }
         }
 
-        List<FoundFile> foundFiles = new ArrayList<FoundFile>();
+        Map<FoundFile, FoundFile> foundFilesMap = new HashMap<>();
 
         for (Message response : responses) {
             int numberOfArgs = Integer.parseInt(response.getArgs().get(0));
@@ -106,12 +108,23 @@ public class Peer extends Thread {
                 String address = response.getSenderIp();
                 int port = response.getSenderPort();
 
-                FoundFile foundFile = new FoundFile(fileName, fileSize, address, port);
-                foundFiles.add(foundFile);
+                NeighborPeer peer = this.findNeighbor(address, port);
+
+                FoundFile foundFile = new FoundFile(fileName, fileSize);
+
+                if (foundFilesMap.containsKey(foundFile)) {
+                    FoundFile existing = foundFilesMap.get(foundFile);
+                    existing.addPeer(peer);
+                } else {
+                    // Não existe: adiciona o peer e insere no mapa
+                    foundFile.addPeer(peer);
+                    foundFilesMap.put(foundFile, foundFile);
+                }
+
             }
         }
 
-        return foundFiles;
+        return foundFilesMap;
     }
 
     public void sendDl(FoundFile file) {

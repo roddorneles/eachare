@@ -7,6 +7,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class App {
@@ -187,7 +188,8 @@ public class App {
 
     public static void searchFile() {
 
-        List<FoundFile> foundFiles = localPeer.sendList();
+        Map<FoundFile, FoundFile> foundFilesMap = localPeer.sendList();
+        List<FoundFile> foundFiles = new ArrayList<>(foundFilesMap.values());
 
         System.out.println("Arquivos encontrados na rede:");
 
@@ -199,7 +201,7 @@ public class App {
         for (int i = 0; i < foundFiles.size(); i++) {
             FoundFile foundFile = foundFiles.get(i);
             System.out.printf("  [ %-2d] %-14s | %-8s | %-15s\n", i + 1, foundFile.getFilename(), foundFile.getSize(),
-                    foundFile.getAddress() + ":" + foundFile.getPort());
+                    foundFile.peersToStr());
         }
 
         Scanner sc = new Scanner(System.in);
