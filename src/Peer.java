@@ -24,6 +24,7 @@ public class Peer extends Thread {
     private boolean isOnline;
     private File folder;
     private int chunckSize;
+    private ConcurrentStatisticsCollector statisticsCollector = new ConcurrentStatisticsCollector();
 
     public Peer(String address, String door) {
         this.address = address;
@@ -132,10 +133,14 @@ public class Peer extends Thread {
         int fileSize = file.getSize();
         int chunkSize = this.chunckSize;
         int totalChunks = (int) Math.ceil((double) fileSize / chunkSize);
+        int numberOfPeers = file.getPeers().size();
 
         String[] base64Chunks = new String[totalChunks];
 
         List<Thread> threads = new ArrayList<>();
+
+        // Salva o tempo antes de mandar as mensagens
+        long startTime = System.nanoTime();
 
         for (int chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
             int finalChunkIndex = chunkIndex;
@@ -183,6 +188,15 @@ public class Peer extends Thread {
                 byte[] chunkBytes = Base64.getDecoder().decode(chunk);
                 baos.write(chunkBytes);
             }
+
+            // Salva o tempo após receber as mensagens e antes de salvar
+            long endTime = System.nanoTime();
+            // Calcula o tempo gasto
+            long durationInNanoseconds = endTime - startTime;
+            long durationInMilliseconds = durationInNanoseconds / 1_000_000;
+
+            // Salva o tempo para coleta de estatísticas
+            statisticsCollector.addDownloadTime(chunckSize, numberOfPeers, fileSize, durationInMilliseconds);
 
             // Salvar o arquivo completo
             File outputFile = new File(this.folder, file.getFilename());
