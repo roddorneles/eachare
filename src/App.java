@@ -137,6 +137,9 @@ public class App {
                 case "4":
                     searchFile();
                     break;
+                case "5":
+                    displayStatistics();
+                    break;
                 case "6":
                     changeChunckSize();
                     break;
@@ -212,6 +215,11 @@ public class App {
             localPeer.sendDl(selectedFile);
         }
 
+    }
+
+    public static void displayStatistics (){
+        ConcurrentStatisticsCollector statistics = localPeer.getStatisticsCollector();
+        statistics.displayStatistics();
     }
 
     public static void changeChunckSize() {
